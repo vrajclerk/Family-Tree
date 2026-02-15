@@ -244,8 +244,19 @@ export const useTreeLayout = (
             sx += unit.subtreeWidth + BRANCH_GAP;
         });
 
-        // Sibling edges
+        // Sibling edges — only show when siblings DON'T share a parent
+        // (if they share parents, the tree structure already implies siblinghood)
         siblingRels.forEach(rel => {
+            const parents1 = childToParents.get(rel.member_1_id);
+            const parents2 = childToParents.get(rel.member_2_id);
+            if (parents1 && parents2) {
+                // Check if they share any parent
+                let shareParent = false;
+                for (const p of parents1) {
+                    if (parents2.has(p)) { shareParent = true; break; }
+                }
+                if (shareParent) return; // skip — already shown via shared parent junction
+            }
             const p1 = posMap.get(rel.member_1_id);
             const p2 = posMap.get(rel.member_2_id);
             if (!p1 || !p2) return;
