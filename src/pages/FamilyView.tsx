@@ -64,19 +64,41 @@ const FamilyView: React.FC = () => {
     };
 
     const getParentNames = (memberId: string) => {
-        const parentRels = relationships.filter(r => r.child_member_id === memberId);
-        return parentRels.map(r => {
-            const parent = members.find(m => m.id === r.parent_member_id);
-            return parent?.display_name || parent?.person?.canonical_name || 'Unknown';
-        });
+        return relationships
+            .filter(r => r.relationship_type === 'parent_child' && r.member_2_id === memberId)
+            .map(r => {
+                const parent = members.find(m => m.id === r.member_1_id);
+                return parent?.display_name || parent?.person?.canonical_name || 'Unknown';
+            });
     };
 
     const getChildrenNames = (memberId: string) => {
-        const childRels = relationships.filter(r => r.parent_member_id === memberId);
-        return childRels.map(r => {
-            const child = members.find(m => m.id === r.child_member_id);
-            return child?.display_name || child?.person?.canonical_name || 'Unknown';
-        });
+        return relationships
+            .filter(r => r.relationship_type === 'parent_child' && r.member_1_id === memberId)
+            .map(r => {
+                const child = members.find(m => m.id === r.member_2_id);
+                return child?.display_name || child?.person?.canonical_name || 'Unknown';
+            });
+    };
+
+    const getSpouseNames = (memberId: string) => {
+        return relationships
+            .filter(r => r.relationship_type === 'spouse' && (r.member_1_id === memberId || r.member_2_id === memberId))
+            .map(r => {
+                const spouseId = r.member_1_id === memberId ? r.member_2_id : r.member_1_id;
+                const spouse = members.find(m => m.id === spouseId);
+                return spouse?.display_name || spouse?.person?.canonical_name || 'Unknown';
+            });
+    };
+
+    const getSiblingNames = (memberId: string) => {
+        return relationships
+            .filter(r => r.relationship_type === 'sibling' && (r.member_1_id === memberId || r.member_2_id === memberId))
+            .map(r => {
+                const siblingId = r.member_1_id === memberId ? r.member_2_id : r.member_1_id;
+                const sibling = members.find(m => m.id === siblingId);
+                return sibling?.display_name || sibling?.person?.canonical_name || 'Unknown';
+            });
     };
 
     if (familyLoading) {
@@ -200,7 +222,10 @@ const FamilyView: React.FC = () => {
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredMembers.map((member) => {
                                 const parents = getParentNames(member.id);
-                                const children = getChildrenNames(member.id);
+                                const childrenNames = getChildrenNames(member.id);
+                                const spouses = getSpouseNames(member.id);
+                                const siblings = getSiblingNames(member.id);
+                                const hasRelations = parents.length > 0 || childrenNames.length > 0 || spouses.length > 0 || siblings.length > 0;
                                 return (
                                     <div
                                         key={member.id}
@@ -208,9 +233,17 @@ const FamilyView: React.FC = () => {
                                         onClick={() => navigate(`/family/${familyId}/member/${member.id}`)}
                                     >
                                         <div className="flex items-start gap-4">
-                                            <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${getGenderColor(member.person?.gender)} flex items-center justify-center text-white text-2xl shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                                                {getGenderEmoji(member.person?.gender)}
-                                            </div>
+                                            {member.person?.photo_url ? (
+                                                <img
+                                                    src={member.person.photo_url}
+                                                    alt={member.person.canonical_name}
+                                                    className="w-14 h-14 rounded-full object-cover shadow-lg group-hover:scale-110 transition-transform duration-300"
+                                                />
+                                            ) : (
+                                                <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${getGenderColor(member.person?.gender)} flex items-center justify-center text-white text-2xl shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                                                    {getGenderEmoji(member.person?.gender)}
+                                                </div>
+                                            )}
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="text-lg font-bold truncate">
                                                     {member.display_name || member.person?.canonical_name}
@@ -218,7 +251,7 @@ const FamilyView: React.FC = () => {
                                                 {member.person?.occupation && (
                                                     <p className="text-sm text-slate-500 dark:text-slate-400">{member.person.occupation}</p>
                                                 )}
-                                                <div className="flex items-center gap-2 mt-1">
+                                                <div className="flex items-center gap-2 mt-1 flex-wrap">
                                                     {member.person?.birth_date && (
                                                         <span className="text-xs text-slate-500">
                                                             b. {new Date(member.person.birth_date).getFullYear()}
@@ -235,16 +268,26 @@ const FamilyView: React.FC = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                        {(parents.length > 0 || children.length > 0) && (
+                                        {hasRelations && (
                                             <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-1">
+                                                {spouses.length > 0 && (
+                                                    <p className="text-xs text-slate-500">
+                                                        <span className="font-medium text-pink-600 dark:text-pink-400">💍 Spouse:</span> {spouses.join(', ')}
+                                                    </p>
+                                                )}
                                                 {parents.length > 0 && (
                                                     <p className="text-xs text-slate-500">
                                                         <span className="font-medium">Parents:</span> {parents.join(', ')}
                                                     </p>
                                                 )}
-                                                {children.length > 0 && (
+                                                {childrenNames.length > 0 && (
                                                     <p className="text-xs text-slate-500">
-                                                        <span className="font-medium">Children:</span> {children.join(', ')}
+                                                        <span className="font-medium">Children:</span> {childrenNames.join(', ')}
+                                                    </p>
+                                                )}
+                                                {siblings.length > 0 && (
+                                                    <p className="text-xs text-slate-500">
+                                                        <span className="font-medium text-teal-600 dark:text-teal-400">Siblings:</span> {siblings.join(', ')}
                                                     </p>
                                                 )}
                                             </div>

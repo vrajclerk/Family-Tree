@@ -1,18 +1,45 @@
 import React, { useState } from 'react';
-import { X, GitBranch, AlertCircle } from 'lucide-react';
+import { X, GitBranch, AlertCircle, Heart, Users } from 'lucide-react';
 import type { FamilyMemberWithPerson } from '../hooks/useFamilyMembers';
 
 interface AddRelationshipModalProps {
     members: FamilyMemberWithPerson[];
     onClose: () => void;
     onSubmit: (data: {
-        parentMemberId: string;
-        childMemberId: string;
-        relationType: string;
+        member1Id: string;
+        member2Id: string;
+        relationshipType: string;
+        relationSubtype: string;
     }) => Promise<void>;
     preselectedMemberId?: string;
     loading?: boolean;
 }
+
+const SUBTYPES_BY_TYPE: Record<string, { value: string; label: string }[]> = {
+    parent_child: [
+        { value: 'biological', label: 'Biological' },
+        { value: 'adopted', label: 'Adopted' },
+        { value: 'step', label: 'Step' },
+        { value: 'foster', label: 'Foster' },
+    ],
+    spouse: [
+        { value: 'married', label: 'Married' },
+        { value: 'partner', label: 'Partner' },
+        { value: 'divorced', label: 'Divorced' },
+    ],
+    sibling: [
+        { value: 'full', label: 'Full Sibling' },
+        { value: 'half', label: 'Half Sibling' },
+        { value: 'step', label: 'Step Sibling' },
+        { value: 'adopted', label: 'Adopted Sibling' },
+    ],
+};
+
+const TYPE_ICONS: Record<string, React.ReactNode> = {
+    parent_child: <GitBranch className="w-4 h-4" />,
+    spouse: <Heart className="w-4 h-4" />,
+    sibling: <Users className="w-4 h-4" />,
+};
 
 const AddRelationshipModal: React.FC<AddRelationshipModalProps> = ({
     members,
@@ -21,29 +48,36 @@ const AddRelationshipModal: React.FC<AddRelationshipModalProps> = ({
     preselectedMemberId,
     loading = false,
 }) => {
-    const [parentId, setParentId] = useState(preselectedMemberId || '');
-    const [childId, setChildId] = useState('');
-    const [relationType, setRelationType] = useState('biological');
+    const [relationshipType, setRelationshipType] = useState('parent_child');
+    const [member1Id, setMember1Id] = useState(preselectedMemberId || '');
+    const [member2Id, setMember2Id] = useState('');
+    const [relationSubtype, setRelationSubtype] = useState('biological');
     const [error, setError] = useState('');
+
+    const handleTypeChange = (type: string) => {
+        setRelationshipType(type);
+        setRelationSubtype(SUBTYPES_BY_TYPE[type][0].value);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
 
-        if (!parentId || !childId) {
-            setError('Please select both parent and child.');
+        if (!member1Id || !member2Id) {
+            setError('Please select both members.');
             return;
         }
-        if (parentId === childId) {
-            setError('A person cannot be their own parent.');
+        if (member1Id === member2Id) {
+            setError('Cannot create a relationship with the same person.');
             return;
         }
 
         try {
             await onSubmit({
-                parentMemberId: parentId,
-                childMemberId: childId,
-                relationType,
+                member1Id,
+                member2Id,
+                relationshipType,
+                relationSubtype,
             });
             onClose();
         } catch (err: any) {
@@ -55,6 +89,24 @@ const AddRelationshipModal: React.FC<AddRelationshipModalProps> = ({
         const name = m.display_name || m.person?.canonical_name || 'Unknown';
         const birth = m.person?.birth_date ? ` (b. ${new Date(m.person.birth_date).getFullYear()})` : '';
         return `${name}${birth}`;
+    };
+
+    const getLabel1 = () => {
+        switch (relationshipType) {
+            case 'parent_child': return 'Parent';
+            case 'spouse': return 'Person 1';
+            case 'sibling': return 'Sibling 1';
+            default: return 'Person 1';
+        }
+    };
+
+    const getLabel2 = () => {
+        switch (relationshipType) {
+            case 'parent_child': return 'Child';
+            case 'spouse': return 'Person 2';
+            case 'sibling': return 'Sibling 2';
+            default: return 'Person 2';
+        }
     };
 
     return (
@@ -78,18 +130,43 @@ const AddRelationshipModal: React.FC<AddRelationshipModalProps> = ({
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Relationship Type Selector */}
                     <div>
-                        <label htmlFor="parent" className="label">Parent</label>
+                        <label className="label">Relationship Type</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {(['parent_child', 'spouse', 'sibling'] as const).map((type) => (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => handleTypeChange(type)}
+                                    className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg border-2 text-sm font-medium transition-all ${relationshipType === type
+                                            ? type === 'parent_child'
+                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                                                : type === 'spouse'
+                                                    ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20 text-pink-700 dark:text-pink-300'
+                                                    : 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300'
+                                            : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
+                                        }`}
+                                >
+                                    {TYPE_ICONS[type]}
+                                    {type === 'parent_child' ? 'Parent–Child' : type === 'spouse' ? 'Spouse' : 'Sibling'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="member1" className="label">{getLabel1()}</label>
                         <select
-                            id="parent"
-                            value={parentId}
-                            onChange={(e) => setParentId(e.target.value)}
+                            id="member1"
+                            value={member1Id}
+                            onChange={(e) => setMember1Id(e.target.value)}
                             className="input-field"
                             required
                         >
-                            <option value="">Select parent...</option>
+                            <option value="">Select {getLabel1().toLowerCase()}...</option>
                             {members.map((m) => (
-                                <option key={m.id} value={m.id} disabled={m.id === childId}>
+                                <option key={m.id} value={m.id} disabled={m.id === member2Id}>
                                     {getMemberLabel(m)}
                                 </option>
                             ))}
@@ -97,17 +174,17 @@ const AddRelationshipModal: React.FC<AddRelationshipModalProps> = ({
                     </div>
 
                     <div>
-                        <label htmlFor="child" className="label">Child</label>
+                        <label htmlFor="member2" className="label">{getLabel2()}</label>
                         <select
-                            id="child"
-                            value={childId}
-                            onChange={(e) => setChildId(e.target.value)}
+                            id="member2"
+                            value={member2Id}
+                            onChange={(e) => setMember2Id(e.target.value)}
                             className="input-field"
                             required
                         >
-                            <option value="">Select child...</option>
+                            <option value="">Select {getLabel2().toLowerCase()}...</option>
                             {members.map((m) => (
-                                <option key={m.id} value={m.id} disabled={m.id === parentId}>
+                                <option key={m.id} value={m.id} disabled={m.id === member1Id}>
                                     {getMemberLabel(m)}
                                 </option>
                             ))}
@@ -115,17 +192,16 @@ const AddRelationshipModal: React.FC<AddRelationshipModalProps> = ({
                     </div>
 
                     <div>
-                        <label htmlFor="relType" className="label">Relationship Type</label>
+                        <label htmlFor="subtype" className="label">Subtype</label>
                         <select
-                            id="relType"
-                            value={relationType}
-                            onChange={(e) => setRelationType(e.target.value)}
+                            id="subtype"
+                            value={relationSubtype}
+                            onChange={(e) => setRelationSubtype(e.target.value)}
                             className="input-field"
                         >
-                            <option value="biological">Biological</option>
-                            <option value="adopted">Adopted</option>
-                            <option value="step">Step</option>
-                            <option value="foster">Foster</option>
+                            {SUBTYPES_BY_TYPE[relationshipType].map((s) => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
                         </select>
                     </div>
 

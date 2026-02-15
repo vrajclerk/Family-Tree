@@ -51,9 +51,13 @@ const FamilyMemberNode: React.FC<NodeProps> = ({ data }) => {
             <Handle type="target" position={Position.Top} className="!bg-slate-400 !w-3 !h-3" />
 
             <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getGenderColor(person?.gender)} flex items-center justify-center text-white text-lg shadow-md`}>
-                    {getGenderEmoji(person?.gender)}
-                </div>
+                {person?.photo_url ? (
+                    <img src={person.photo_url} alt="" className="w-10 h-10 rounded-full object-cover shadow-md" />
+                ) : (
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getGenderColor(person?.gender)} flex items-center justify-center text-white text-lg shadow-md`}>
+                        {getGenderEmoji(person?.gender)}
+                    </div>
+                )}
                 <div className="flex-1 min-w-0">
                     <p className="font-bold text-sm truncate text-slate-900 dark:text-slate-100">
                         {member.display_name || person?.canonical_name || 'Unknown'}
@@ -195,8 +199,8 @@ const TreeView: React.FC = () => {
             )}
 
             {/* Legend */}
-            <div className="glass border-t border-slate-200/50 dark:border-slate-700/50 px-6 py-2 flex items-center gap-6 text-xs text-slate-500">
-                <span className="font-medium">Relationship Types:</span>
+            <div className="glass border-t border-slate-200/50 dark:border-slate-700/50 px-6 py-2 flex items-center gap-6 text-xs text-slate-500 flex-wrap">
+                <span className="font-medium">Relationships:</span>
                 <span className="flex items-center gap-1">
                     <span className="w-4 h-0.5 bg-blue-500 inline-block"></span> Biological
                 </span>
@@ -208,6 +212,12 @@ const TreeView: React.FC = () => {
                 </span>
                 <span className="flex items-center gap-1">
                     <span className="w-4 h-0.5 bg-slate-500 inline-block"></span> Foster
+                </span>
+                <span className="flex items-center gap-1">
+                    <span className="w-4 h-0.5 bg-pink-500 inline-block" style={{ borderTop: '2px dashed #ec4899', height: 0 }}></span> 💍 Spouse
+                </span>
+                <span className="flex items-center gap-1">
+                    <span className="w-4 h-0.5 bg-teal-500 inline-block" style={{ borderTop: '2px dotted #14b8a6', height: 0 }}></span> Sibling
                 </span>
             </div>
         </div>

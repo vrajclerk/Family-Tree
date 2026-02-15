@@ -64,9 +64,10 @@ export interface FamilyMember {
 export interface Relationship {
     id: string;
     family_id: string;
-    parent_member_id: string;
-    child_member_id: string;
-    relation_type: 'biological' | 'adopted' | 'step' | 'foster';
+    member_1_id: string;
+    member_2_id: string;
+    relationship_type: 'parent_child' | 'spouse' | 'sibling';
+    relation_subtype: 'biological' | 'adopted' | 'step' | 'foster' | 'married' | 'partner' | 'divorced' | 'half' | 'full';
     created_at: string;
     updated_at: string;
 }

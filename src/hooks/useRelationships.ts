@@ -19,21 +19,24 @@ export const useRelationships = (familyId: string) => {
 
     const addRelationship = useMutation({
         mutationFn: async ({
-            parentMemberId,
-            childMemberId,
-            relationType = 'biological',
+            member1Id,
+            member2Id,
+            relationshipType = 'parent_child',
+            relationSubtype = 'biological',
         }: {
-            parentMemberId: string;
-            childMemberId: string;
-            relationType?: string;
+            member1Id: string;
+            member2Id: string;
+            relationshipType?: string;
+            relationSubtype?: string;
         }) => {
             const { data, error } = await supabase
                 .from('relationships')
                 .insert([{
                     family_id: familyId,
-                    parent_member_id: parentMemberId,
-                    child_member_id: childMemberId,
-                    relation_type: relationType,
+                    member_1_id: member1Id,
+                    member_2_id: member2Id,
+                    relationship_type: relationshipType,
+                    relation_subtype: relationSubtype,
                 }])
                 .select()
                 .single();

@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit3, Save, X, Calendar, Briefcase, GitBranch, TreePine } from 'lucide-react';
+import { ArrowLeft, Edit3, Save, X, Calendar, Briefcase, GitBranch, TreePine, Camera, Upload, Trash2 } from 'lucide-react';
 import { useFamilyMembers, type FamilyMemberWithPerson } from '../hooks/useFamilyMembers';
 import { useRelationships } from '../hooks/useRelationships';
+import { usePhotoUpload } from '../hooks/usePhotoUpload';
 
 const MemberProfile: React.FC = () => {
     const { familyId, memberId } = useParams<{ familyId: string; memberId: string }>();
     const navigate = useNavigate();
 
-
     const { members, updateMember } = useFamilyMembers(familyId || '');
     const { relationships } = useRelationships(familyId || '');
+    const { uploadPhoto, deletePhoto, uploading } = usePhotoUpload();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -42,29 +44,36 @@ const MemberProfile: React.FC = () => {
         }
     }, [member]);
 
+    // Relationships using new column names
     const parents = relationships
-        .filter((r) => r.child_member_id === memberId)
+        .filter((r) => r.relationship_type === 'parent_child' && r.member_2_id === memberId)
         .map((r) => {
-            const parent = members.find((m) => m.id === r.parent_member_id);
+            const parent = members.find((m) => m.id === r.member_1_id);
             return { ...r, member: parent };
         });
 
     const children = relationships
-        .filter((r) => r.parent_member_id === memberId)
+        .filter((r) => r.relationship_type === 'parent_child' && r.member_1_id === memberId)
         .map((r) => {
-            const child = members.find((m) => m.id === r.child_member_id);
+            const child = members.find((m) => m.id === r.member_2_id);
             return { ...r, member: child };
         });
 
-    const siblings = parents.length > 0
-        ? members.filter((m) => {
-            if (m.id === memberId) return false;
-            return relationships.some(
-                (r) => r.child_member_id === m.id &&
-                    parents.some((p) => p.parent_member_id === r.parent_member_id)
-            );
-        })
-        : [];
+    const spouses = relationships
+        .filter((r) => r.relationship_type === 'spouse' && (r.member_1_id === memberId || r.member_2_id === memberId))
+        .map((r) => {
+            const spouseId = r.member_1_id === memberId ? r.member_2_id : r.member_1_id;
+            const spouse = members.find((m) => m.id === spouseId);
+            return { ...r, member: spouse };
+        });
+
+    const siblings = relationships
+        .filter((r) => r.relationship_type === 'sibling' && (r.member_1_id === memberId || r.member_2_id === memberId))
+        .map((r) => {
+            const siblingId = r.member_1_id === memberId ? r.member_2_id : r.member_1_id;
+            const sibling = members.find((m) => m.id === siblingId);
+            return { ...r, member: sibling };
+        });
 
     const handleSave = async () => {
         if (!member) return;
@@ -91,6 +100,28 @@ const MemberProfile: React.FC = () => {
             console.error('Error saving:', err);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !member?.person_id) return;
+        try {
+            await uploadPhoto(file, member.person_id);
+            // Refresh data
+            window.location.reload();
+        } catch (err) {
+            console.error('Photo upload failed:', err);
+        }
+    };
+
+    const handlePhotoDelete = async () => {
+        if (!member?.person?.photo_url || !member.person_id) return;
+        try {
+            await deletePhoto(member.person_id, member.person.photo_url);
+            window.location.reload();
+        } catch (err) {
+            console.error('Photo delete failed:', err);
         }
     };
 
@@ -122,9 +153,19 @@ const MemberProfile: React.FC = () => {
     }
 
     const person = member.person;
+    const hasRelations = parents.length > 0 || children.length > 0 || spouses.length > 0 || siblings.length > 0;
 
     return (
         <div className="min-h-screen">
+            {/* Hidden file input */}
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoUpload}
+                accept="image/*"
+                className="hidden"
+            />
+
             {/* Navigation */}
             <nav className="glass fixed top-0 left-0 right-0 z-50 border-b border-slate-200/50 dark:border-slate-700/50">
                 <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -158,9 +199,45 @@ const MemberProfile: React.FC = () => {
                     {/* Profile Header */}
                     <div className="card mb-8">
                         <div className="flex items-start gap-6">
-                            <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getGenderColor(person?.gender)} flex items-center justify-center text-white text-4xl shadow-xl`}>
-                                {getGenderEmoji(person?.gender)}
+                            {/* Photo / Avatar */}
+                            <div className="relative group">
+                                {person?.photo_url ? (
+                                    <img
+                                        src={person.photo_url}
+                                        alt={person.canonical_name}
+                                        className="w-24 h-24 rounded-2xl object-cover shadow-xl"
+                                    />
+                                ) : (
+                                    <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getGenderColor(person?.gender)} flex items-center justify-center text-white text-4xl shadow-xl`}>
+                                        {getGenderEmoji(person?.gender)}
+                                    </div>
+                                )}
+                                {/* Photo actions overlay */}
+                                <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="p-2 bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors text-white"
+                                        title={person?.photo_url ? 'Change photo' : 'Upload photo'}
+                                        disabled={uploading}
+                                    >
+                                        {uploading ? (
+                                            <Upload className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Camera className="w-4 h-4" />
+                                        )}
+                                    </button>
+                                    {person?.photo_url && (
+                                        <button
+                                            onClick={handlePhotoDelete}
+                                            className="p-2 bg-red-500/40 backdrop-blur rounded-lg hover:bg-red-500/60 transition-colors text-white"
+                                            title="Remove photo"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
+
                             <div className="flex-1">
                                 {editing ? (
                                     <div className="space-y-3">
@@ -196,6 +273,11 @@ const MemberProfile: React.FC = () => {
                                     </span>
                                     {person?.gender && (
                                         <span className="text-sm text-slate-500 capitalize">{person.gender}</span>
+                                    )}
+                                    {spouses.length > 0 && (
+                                        <span className="text-sm px-3 py-1 rounded-full bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400">
+                                            💍 {spouses.map(s => s.member?.display_name || s.member?.person?.canonical_name).join(', ')}
+                                        </span>
                                     )}
                                 </div>
                             </div>
@@ -262,10 +344,25 @@ const MemberProfile: React.FC = () => {
                                 Relationships
                             </h2>
 
-                            {parents.length === 0 && children.length === 0 && siblings.length === 0 ? (
+                            {!hasRelations ? (
                                 <p className="text-sm text-slate-500 dark:text-slate-400">No relationships mapped yet.</p>
                             ) : (
                                 <div className="space-y-4">
+                                    {spouses.length > 0 && (
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-pink-600 dark:text-pink-400 uppercase tracking-wide mb-2">💍 Spouse</h3>
+                                            <div className="space-y-2">
+                                                {spouses.map((s) => s.member && (
+                                                    <RelationCard
+                                                        key={s.id}
+                                                        member={s.member}
+                                                        relationType={s.relation_subtype}
+                                                        onClick={() => navigate(`/family/${familyId}/member/${s.member!.id}`)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     {parents.length > 0 && (
                                         <div>
                                             <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">Parents</h3>
@@ -274,7 +371,7 @@ const MemberProfile: React.FC = () => {
                                                     <RelationCard
                                                         key={p.id}
                                                         member={p.member}
-                                                        relationType={p.relation_type}
+                                                        relationType={p.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${p.member!.id}`)}
                                                     />
                                                 ))}
@@ -283,13 +380,14 @@ const MemberProfile: React.FC = () => {
                                     )}
                                     {siblings.length > 0 && (
                                         <div>
-                                            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-2">Siblings</h3>
+                                            <h3 className="text-sm font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wide mb-2">Siblings</h3>
                                             <div className="space-y-2">
-                                                {siblings.map((s) => (
+                                                {siblings.map((s) => s.member && (
                                                     <RelationCard
                                                         key={s.id}
-                                                        member={s}
-                                                        onClick={() => navigate(`/family/${familyId}/member/${s.id}`)}
+                                                        member={s.member}
+                                                        relationType={s.relation_subtype}
+                                                        onClick={() => navigate(`/family/${familyId}/member/${s.member!.id}`)}
                                                     />
                                                 ))}
                                             </div>
@@ -303,7 +401,7 @@ const MemberProfile: React.FC = () => {
                                                     <RelationCard
                                                         key={c.id}
                                                         member={c.member}
-                                                        relationType={c.relation_type}
+                                                        relationType={c.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${c.member!.id}`)}
                                                     />
                                                 ))}
@@ -340,23 +438,25 @@ const DetailRow: React.FC<{ label: string; value?: string | null; icon?: React.R
 );
 
 const RelationCard: React.FC<{ member: FamilyMemberWithPerson; relationType?: string; onClick: () => void }> = ({ member, relationType, onClick }) => {
-    const getGenderEmoji = (gender?: string) => {
-        switch (gender) { case 'male': return '👨'; case 'female': return '👩'; default: return '👤'; }
-    };
-
     return (
         <button
             onClick={onClick}
             className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-left"
         >
-            <span className="text-xl">{getGenderEmoji(member.person?.gender)}</span>
+            {member.person?.photo_url ? (
+                <img src={member.person.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+                <span className="text-xl">
+                    {member.person?.gender === 'male' ? '👨' : member.person?.gender === 'female' ? '👩' : '👤'}
+                </span>
+            )}
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{member.display_name || member.person?.canonical_name}</p>
                 {member.person?.birth_date && (
                     <p className="text-xs text-slate-500">b. {new Date(member.person.birth_date).getFullYear()}</p>
                 )}
             </div>
-            {relationType && relationType !== 'biological' && (
+            {relationType && relationType !== 'biological' && relationType !== 'full' && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
                     {relationType}
                 </span>
