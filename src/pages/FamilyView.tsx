@@ -304,8 +304,39 @@ const FamilyView: React.FC = () => {
             {showAddMember && (
                 <AddMemberModal
                     onClose={() => setShowAddMember(false)}
+                    existingMembers={members}
                     onSubmit={async (data) => {
-                        await addMember.mutateAsync(data);
+                        const { relationships: rels, ...memberData } = data;
+                        // 1. Create the member first
+                        const newMember = await addMember.mutateAsync(memberData);
+                        // 2. Create relationships
+                        if (rels && rels.length > 0 && newMember?.id) {
+                            for (const rel of rels) {
+                                let member1Id: string;
+                                let member2Id: string;
+                                if (rel.relationshipType === 'parent_child') {
+                                    if (rel.direction === 'new_is_child') {
+                                        // existing member is parent, new member is child
+                                        member1Id = rel.relatedMemberId;
+                                        member2Id = newMember.id;
+                                    } else {
+                                        // new member is parent, existing member is child
+                                        member1Id = newMember.id;
+                                        member2Id = rel.relatedMemberId;
+                                    }
+                                } else {
+                                    // spouse / sibling — order doesn't matter
+                                    member1Id = newMember.id;
+                                    member2Id = rel.relatedMemberId;
+                                }
+                                await addRelationship.mutateAsync({
+                                    member1Id,
+                                    member2Id,
+                                    relationshipType: rel.relationshipType,
+                                    relationSubtype: rel.relationSubtype,
+                                });
+                            }
+                        }
                     }}
                     loading={addMember.isPending}
                 />
