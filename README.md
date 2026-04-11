@@ -10,9 +10,12 @@ A modern, secure, and feature-rich family tree application built with React, Typ
 - ✅ **Multi-Tenant Architecture** - Multiple independent family trees
 - ✅ **Secure Authentication** - Email/password with Supabase Auth
 - ✅ **Role-Based Access Control** - Owner, Admin, Contributor, Viewer roles
-- 🚧 **Smart Relationship Mapping** - Automatic parent-child detection
+- ✅ **Collaborative Invites** - Single-use secure invite links to bring in relatives
+- ✅ **Smart Relationship Mapping** - Advanced spouse, sibling, and parent/child mapping
+- ✅ **Intelligent Validation** - Real-time logic checks to prevent impossible age gaps and dates
+- ✅ **Tree Visualization** - Interactive hierarchical family tree
+- ✅ **Media Uploads** - Native member photo uploads via Supabase Storage
 - 🚧 **Duplicate Detection** - Fuzzy name matching with pg_trgm
-- 🚧 **Tree Visualization** - Interactive family tree with React Flow
 - 🚧 **Export Capabilities** - PNG, PDF, and CSV exports
 - 🚧 **Family History** - Rich text stories with media uploads
 - ✅ **Responsive Design** - Beautiful UI with dark mode support
@@ -20,9 +23,10 @@ A modern, secure, and feature-rich family tree application built with React, Typ
 ### Security Features
 - Row-Level Security (RLS) in PostgreSQL
 - Password-protected family ownership
+- Secure user invitations and role enforcement
 - Encrypted data storage
 - Audit logging for all changes
-- Circular relationship prevention
+- Circular and physically impossible relationship prevention
 
 ## 🏗️ Architecture
 
@@ -285,18 +289,18 @@ npm run type-check
 - [x] Landing page
 - [x] Dashboard
 
-### Phase 2: Core Features 🚧
-- [ ] Add family members
-- [ ] Relationship mapping
-- [ ] Duplicate detection
-- [ ] Tree visualization
-- [ ] Member profiles
+### Phase 2: Core Features ✅
+- [x] Add family members
+- [x] Relationship mapping (Spouses, Siblings, Lineage)
+- [x] Smart data validation & impossible connection prevention
+- [x] Tree visualization formatting and hierarchical layouts
+- [x] Member profiles with edit capabilities
 
-### Phase 3: Advanced Features
+### Phase 3: Advanced Features 🚧
 - [ ] Export (PNG, PDF, CSV)
 - [ ] Family history
-- [ ] Media uploads
-- [ ] Invite system
+- [x] Media uploads (Member photos)
+- [x] Invite system & member management
 - [ ] Search functionality
 
 ### Phase 4: Polish
