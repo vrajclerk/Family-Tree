@@ -62,11 +62,46 @@ export const useRelationships = (familyId: string) => {
         },
     });
 
+    const updateRelationship = useMutation({
+        mutationFn: async ({
+            relationshipId,
+            member1Id,
+            member2Id,
+            relationshipType,
+            relationSubtype,
+        }: {
+            relationshipId: string;
+            member1Id: string;
+            member2Id: string;
+            relationshipType: string;
+            relationSubtype: string;
+        }) => {
+            const { data, error } = await supabase
+                .from('relationships')
+                .update({
+                    member_1_id: member1Id,
+                    member_2_id: member2Id,
+                    relationship_type: relationshipType,
+                    relation_subtype: relationSubtype,
+                })
+                .eq('id', relationshipId)
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['relationships', familyId] });
+            queryClient.invalidateQueries({ queryKey: ['family-members', familyId] });
+        },
+    });
+
     return {
         relationships: relationshipsQuery.data || [],
         isLoading: relationshipsQuery.isLoading,
         error: relationshipsQuery.error,
         addRelationship,
+        updateRelationship,
         deleteRelationship,
     };
 };

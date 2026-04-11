@@ -4,17 +4,19 @@ import { ArrowLeft, Edit3, Save, X, Calendar, Briefcase, GitBranch, TreePine, Ca
 import { useFamilyMembers, type FamilyMemberWithPerson } from '../hooks/useFamilyMembers';
 import { useRelationships } from '../hooks/useRelationships';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
+import EditRelationshipModal from '../components/EditRelationshipModal';
 
 const MemberProfile: React.FC = () => {
     const { familyId, memberId } = useParams<{ familyId: string; memberId: string }>();
     const navigate = useNavigate();
 
     const { members, updateMember } = useFamilyMembers(familyId || '');
-    const { relationships } = useRelationships(familyId || '');
+    const { relationships, updateRelationship, deleteRelationship } = useRelationships(familyId || '');
     const { uploadPhoto, deletePhoto, uploading } = usePhotoUpload();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [editing, setEditing] = useState(false);
+    const [editingRelationship, setEditingRelationship] = useState<any>(null);
     const [saving, setSaving] = useState(false);
     const [editData, setEditData] = useState({
         canonical_name: '',
@@ -358,6 +360,7 @@ const MemberProfile: React.FC = () => {
                                                         member={s.member}
                                                         relationType={s.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${s.member!.id}`)}
+                                                        onEdit={() => setEditingRelationship(s)}
                                                     />
                                                 ))}
                                             </div>
@@ -373,6 +376,7 @@ const MemberProfile: React.FC = () => {
                                                         member={p.member}
                                                         relationType={p.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${p.member!.id}`)}
+                                                        onEdit={() => setEditingRelationship(p)}
                                                     />
                                                 ))}
                                             </div>
@@ -388,6 +392,7 @@ const MemberProfile: React.FC = () => {
                                                         member={s.member}
                                                         relationType={s.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${s.member!.id}`)}
+                                                        onEdit={() => setEditingRelationship(s)}
                                                     />
                                                 ))}
                                             </div>
@@ -403,6 +408,7 @@ const MemberProfile: React.FC = () => {
                                                         member={c.member}
                                                         relationType={c.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${c.member!.id}`)}
+                                                        onEdit={() => setEditingRelationship(c)}
                                                     />
                                                 ))}
                                             </div>
@@ -424,6 +430,23 @@ const MemberProfile: React.FC = () => {
                     </div>
                 </div>
             </div>
+            {editingRelationship && (
+                <EditRelationshipModal
+                    members={members}
+                    relationship={editingRelationship}
+                    onClose={() => setEditingRelationship(null)}
+                    onSubmit={async (data) => {
+                        await updateRelationship.mutateAsync({
+                            relationshipId: editingRelationship.id,
+                            ...data,
+                        });
+                    }}
+                    onDelete={async () => {
+                        await deleteRelationship.mutateAsync(editingRelationship.id);
+                    }}
+                    loading={updateRelationship.isPending || deleteRelationship.isPending}
+                />
+            )}
         </div>
     );
 };
@@ -437,31 +460,41 @@ const DetailRow: React.FC<{ label: string; value?: string | null; icon?: React.R
     </div>
 );
 
-const RelationCard: React.FC<{ member: FamilyMemberWithPerson; relationType?: string; onClick: () => void }> = ({ member, relationType, onClick }) => {
+const RelationCard: React.FC<{ member: FamilyMemberWithPerson; relationType?: string; onClick: () => void; onEdit?: (e: React.MouseEvent) => void }> = ({ member, relationType, onClick, onEdit }) => {
     return (
-        <button
-            onClick={onClick}
-            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-left"
-        >
-            {member.person?.photo_url ? (
-                <img src={member.person.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-                <span className="text-xl">
-                    {member.person?.gender === 'male' ? '👨' : member.person?.gender === 'female' ? '👩' : '👤'}
-                </span>
-            )}
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{member.display_name || member.person?.canonical_name}</p>
-                {member.person?.birth_date && (
-                    <p className="text-xs text-slate-500">b. {new Date(member.person.birth_date).getFullYear()}</p>
+        <div className="flex items-center gap-2">
+            <button
+                onClick={onClick}
+                className="flex-1 flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors text-left"
+            >
+                {member.person?.photo_url ? (
+                    <img src={member.person.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                    <span className="text-xl">
+                        {member.person?.gender === 'male' ? '👨' : member.person?.gender === 'female' ? '👩' : '👤'}
+                    </span>
                 )}
-            </div>
-            {relationType && relationType !== 'biological' && relationType !== 'full' && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
-                    {relationType}
-                </span>
+                <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{member.display_name || member.person?.canonical_name}</p>
+                    {member.person?.birth_date && (
+                        <p className="text-xs text-slate-500">b. {new Date(member.person.birth_date).getFullYear()}</p>
+                    )}
+                </div>
+                {relationType && relationType !== 'biological' && relationType !== 'full' && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                        {relationType}
+                    </span>
+                )}
+            </button>
+            {onEdit && (
+                <button
+                    onClick={onEdit}
+                    className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                    <Edit3 className="w-4 h-4" />
+                </button>
             )}
-        </button>
+        </div>
     );
 };
 
