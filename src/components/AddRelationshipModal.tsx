@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { X, GitBranch, AlertCircle, Heart, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, GitBranch, AlertCircle, Heart, Users, AlertTriangle } from 'lucide-react';
 import type { FamilyMemberWithPerson } from '../hooks/useFamilyMembers';
+import { validateRelationship } from '../utils/validation';
 
 interface AddRelationshipModalProps {
     members: FamilyMemberWithPerson[];
@@ -53,6 +54,14 @@ const AddRelationshipModal: React.FC<AddRelationshipModalProps> = ({
     const [member2Id, setMember2Id] = useState('');
     const [relationSubtype, setRelationSubtype] = useState('biological');
     const [error, setError] = useState('');
+    const [warning, setWarning] = useState('');
+    const [ignoreWarning, setIgnoreWarning] = useState(false);
+
+    useEffect(() => {
+        setWarning('');
+        setIgnoreWarning(false);
+        setError('');
+    }, [member1Id, member2Id, relationshipType]);
 
     const handleTypeChange = (type: string) => {
         setRelationshipType(type);
@@ -69,6 +78,20 @@ const AddRelationshipModal: React.FC<AddRelationshipModalProps> = ({
         }
         if (member1Id === member2Id) {
             setError('Cannot create a relationship with the same person.');
+            return;
+        }
+
+        const m1 = members.find(m => m.id === member1Id);
+        const m2 = members.find(m => m.id === member2Id);
+        const valResult = validateRelationship(m1, m2, relationshipType);
+
+        if (valResult.error) {
+            setError(valResult.error);
+            return;
+        }
+
+        if (valResult.warning && !ignoreWarning) {
+            setWarning(valResult.warning);
             return;
         }
 
@@ -126,6 +149,24 @@ const AddRelationshipModal: React.FC<AddRelationshipModalProps> = ({
                     <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    </div>
+                )}
+
+                {warning && !error && (
+                    <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm text-yellow-800 dark:text-yellow-400 mb-2">{warning}</p>
+                            <label className="flex items-center gap-2 text-sm text-yellow-900 dark:text-yellow-300">
+                                <input 
+                                    type="checkbox" 
+                                    checked={ignoreWarning} 
+                                    onChange={(e) => setIgnoreWarning(e.target.checked)} 
+                                    className="rounded border-yellow-400 text-yellow-600 focus:ring-yellow-500" 
+                                />
+                                Save anyway
+                            </label>
+                        </div>
                     </div>
                 )}
 

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, UserPlus, Search, AlertCircle, LinkIcon, Plus, Trash2, GitBranch, Heart, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, UserPlus, Search, AlertCircle, LinkIcon, Plus, Trash2, GitBranch, Heart, Users, AlertTriangle } from 'lucide-react';
 import { useDuplicateDetection } from '../hooks/useDuplicateDetection';
 import type { FamilyMemberWithPerson } from '../hooks/useFamilyMembers';
+import { validateRelationship } from '../utils/validation';
 
 export interface RelationshipEntry {
     id: string; // local UI key
@@ -83,10 +84,18 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ onClose, onSubmit, load
     const [notes, setNotes] = useState('');
     const [isLiving, setIsLiving] = useState(true);
     const [error, setError] = useState('');
+    const [warning, setWarning] = useState('');
+    const [ignoreWarning, setIgnoreWarning] = useState(false);
     const [selectedExistingPerson, setSelectedExistingPerson] = useState<string | null>(null);
 
     // Relationships state
     const [relationships, setRelationships] = useState<RelationshipEntry[]>([]);
+
+    useEffect(() => {
+        setWarning('');
+        setIgnoreWarning(false);
+        setError('');
+    }, [name, birthDate, relationships, selectedExistingPerson]);
 
     const { data: duplicates, isLoading: checkingDuplicates } = useDuplicateDetection(name, birthDate || undefined);
 
@@ -138,6 +147,39 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ onClose, onSubmit, load
         for (const rel of relationships) {
             if (!rel.relatedMemberId) {
                 setError('Please select a member for each relationship, or remove empty rows.');
+                return;
+            }
+
+            const tempMember = selectedExistingPerson 
+                ? existingMembers.find(m => m.person_id === selectedExistingPerson || m.id === selectedExistingPerson) // Fallback for either ID
+                : {
+                    id: 'temp', person_id: 'temp', family_id: 'temp', is_living: isLiving,
+                    person: { id: 'temp', canonical_name: name, birth_date: birthDate, death_date: deathDate, gender }
+                } as any;
+            
+            const relatedMember = existingMembers.find(m => m.id === rel.relatedMemberId);
+
+            let m1, m2;
+            if (rel.relationshipType === 'parent_child') {
+                if (rel.direction === 'new_is_child') {
+                    m1 = relatedMember; // parent
+                    m2 = tempMember; // child
+                } else {
+                    m1 = tempMember; // parent
+                    m2 = relatedMember; // child
+                }
+            } else {
+                m1 = tempMember;
+                m2 = relatedMember;
+            }
+
+            const valResult = validateRelationship(m1, m2, rel.relationshipType);
+            if (valResult.error) {
+                setError(valResult.error);
+                return;
+            }
+            if (valResult.warning && !ignoreWarning) {
+                setWarning(valResult.warning);
                 return;
             }
         }
@@ -220,6 +262,24 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({ onClose, onSubmit, load
                     <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    </div>
+                )}
+
+                {warning && !error && (
+                    <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm text-yellow-800 dark:text-yellow-400 mb-2">{warning}</p>
+                            <label className="flex items-center gap-2 text-sm text-yellow-900 dark:text-yellow-300">
+                                <input 
+                                    type="checkbox" 
+                                    checked={ignoreWarning} 
+                                    onChange={(e) => setIgnoreWarning(e.target.checked)} 
+                                    className="rounded border-yellow-400 text-yellow-600 focus:ring-yellow-500" 
+                                />
+                                Save anyway
+                            </label>
+                        </div>
                     </div>
                 )}
 
