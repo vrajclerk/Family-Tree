@@ -10,6 +10,8 @@ import FamilyView from './pages/FamilyView';
 import TreeView from './pages/TreeView';
 import MemberProfile from './pages/MemberProfile';
 import FamilyHistory from './pages/FamilyHistory';
+import FamilySettings from './pages/FamilySettings';
+import AcceptInvite from './pages/AcceptInvite';
 import './style.css';
 
 const queryClient = new QueryClient({
@@ -118,6 +120,20 @@ function App() {
                                 <ProtectedRoute>
                                     <FamilyHistory />
                                 </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/family/:familyId/settings"
+                            element={
+                                <ProtectedRoute>
+                                    <FamilySettings />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/invite/:inviteId"
+                            element={
+                                <AcceptInvite />
                             }
                         />
                     </Routes>

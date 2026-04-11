@@ -84,6 +84,14 @@ export interface FamilyMembership {
     family?: Family;
 }
 
+export interface FamilyInvitation {
+    id: string;
+    family_id: string;
+    role: 'admin' | 'contributor' | 'viewer';
+    invited_by: string;
+    created_at: string;
+}
+
 export interface FamilyHistory {
     id: string;
     family_id: string;

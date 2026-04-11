@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { TreePine, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,6 +13,8 @@ const SignUp: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const { signUp } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+    const from = location.state?.returnTo || '/dashboard';
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -36,7 +38,7 @@ const SignUp: React.FC = () => {
             await signUp(email, password, fullName);
             setSuccess(true);
             setTimeout(() => {
-                navigate('/dashboard');
+                navigate(from);
             }, 2000);
         } catch (err: any) {
             setError(err.message || 'Failed to create account. Please try again.');
@@ -172,7 +174,7 @@ const SignUp: React.FC = () => {
                     <div className="mt-6 text-center">
                         <p className="text-slate-600 dark:text-slate-400">
                             Already have an account?{' '}
-                            <Link to="/signin" className="text-blue-600 hover:text-blue-700 font-medium">
+                            <Link to="/signin" state={{ returnTo: location.state?.returnTo }} className="text-blue-600 hover:text-blue-700 font-medium">
                                 Sign in
                             </Link>
                         </p>

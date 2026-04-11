@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { TreePine, Users, Plus, GitBranch, ArrowLeft, Search, Eye } from 'lucide-react';
+import { TreePine, Users, Plus, GitBranch, ArrowLeft, Search, Eye, Settings } from 'lucide-react';
 
 import { supabase, type Family } from '../lib/supabase';
 import { useFamilyMembers } from '../hooks/useFamilyMembers';
@@ -136,6 +136,13 @@ const FamilyView: React.FC = () => {
                             className="btn-secondary flex items-center gap-2 text-sm"
                         >
                             History
+                        </Link>
+                        <Link
+                            to={`/family/${familyId}/settings`}
+                            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                            title="Family Settings"
+                        >
+                            <Settings className="w-5 h-5" />
                         </Link>
                     </div>
                 </div>
