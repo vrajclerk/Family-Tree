@@ -81,15 +81,17 @@ const Dashboard: React.FC = () => {
                     </div>
 
                     {/* Create New Family Button */}
-                    <div className="mb-8">
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="btn-primary flex items-center gap-2"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Create New Family Tree
-                        </button>
-                    </div>
+                    {(families.length === 0 || families.some(f => f.role === 'owner' || f.role === 'admin')) && (
+                        <div className="mb-8">
+                            <button
+                                onClick={() => setShowCreateModal(true)}
+                                className="btn-primary flex items-center gap-2"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Create New Family Tree
+                            </button>
+                        </div>
+                    )}
 
                     {/* Families Grid */}
                     {loading ? (

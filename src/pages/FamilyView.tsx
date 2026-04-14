@@ -5,6 +5,7 @@ import { TreePine, Users, Plus, GitBranch, ArrowLeft, Search, Eye, Settings } fr
 import { supabase, type Family } from '../lib/supabase';
 import { useFamilyMembers } from '../hooks/useFamilyMembers';
 import { useRelationships } from '../hooks/useRelationships';
+import { useCurrentUserRole } from '../hooks/useCurrentUserRole';
 import AddMemberModal from '../components/AddMemberModal';
 import AddRelationshipModal from '../components/AddRelationshipModal';
 
@@ -20,6 +21,7 @@ const FamilyView: React.FC = () => {
 
     const { members, isLoading: membersLoading, addMember } = useFamilyMembers(familyId || '');
     const { relationships, addRelationship } = useRelationships(familyId || '');
+    const { isAdmin, isViewer, loading: roleLoading } = useCurrentUserRole(familyId);
 
     useEffect(() => {
         if (familyId) fetchFamily();
@@ -101,7 +103,7 @@ const FamilyView: React.FC = () => {
             });
     };
 
-    if (familyLoading) {
+    if (familyLoading || roleLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -137,13 +139,15 @@ const FamilyView: React.FC = () => {
                         >
                             History
                         </Link>
-                        <Link
-                            to={`/family/${familyId}/settings`}
-                            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-                            title="Family Settings"
-                        >
-                            <Settings className="w-5 h-5" />
-                        </Link>
+                        {isAdmin && (
+                            <Link
+                                to={`/family/${familyId}/settings`}
+                                className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                                title="Family Settings"
+                            >
+                                <Settings className="w-5 h-5" />
+                            </Link>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -182,23 +186,25 @@ const FamilyView: React.FC = () => {
                                 className="input-field pl-10"
                             />
                         </div>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => setShowAddMember(true)}
-                                className="btn-primary flex items-center gap-2 text-sm"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Add Member
-                            </button>
-                            <button
-                                onClick={() => setShowAddRelationship(true)}
-                                className="btn-secondary flex items-center gap-2 text-sm"
-                                disabled={members.length < 2}
-                            >
-                                <GitBranch className="w-4 h-4" />
-                                Add Relationship
-                            </button>
-                        </div>
+                        {!isViewer && (
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowAddMember(true)}
+                                    className="btn-primary flex items-center gap-2 text-sm"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Add Member
+                                </button>
+                                <button
+                                    onClick={() => setShowAddRelationship(true)}
+                                    className="btn-secondary flex items-center gap-2 text-sm"
+                                    disabled={members.length < 2}
+                                >
+                                    <GitBranch className="w-4 h-4" />
+                                    Add Relationship
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Members Grid */}
@@ -215,7 +221,7 @@ const FamilyView: React.FC = () => {
                             <p className="text-slate-600 dark:text-slate-400 mb-6">
                                 {searchQuery ? 'Try a different search term' : 'Add your first family member to get started'}
                             </p>
-                            {!searchQuery && (
+                            {!searchQuery && !isViewer && (
                                 <button
                                     onClick={() => setShowAddMember(true)}
                                     className="btn-primary inline-flex items-center gap-2"

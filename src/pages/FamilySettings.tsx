@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Settings, Users, Mail, UserMinus, ShieldAlert, AlertCircle, Plus, Copy, Check } from 'lucide-react';
+import { Settings, Users, Mail, UserMinus, ShieldAlert, AlertCircle, Plus, Copy, Check, ArrowLeft } from 'lucide-react';
 import { supabase, type FamilyMembership, type FamilyInvitation } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import InviteMemberModal from '../components/InviteMemberModal';
@@ -134,11 +134,22 @@ export const FamilySettings: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-6 max-w-5xl mx-auto relative">
-            <div className="flex items-center gap-3 mb-8">
-                <Settings className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                <h1 className="text-3xl font-bold">Family Settings</h1>
-            </div>
+        <div className="min-h-screen">
+            {/* Navigation */}
+            <nav className="glass fixed top-0 left-0 right-0 z-50 border-b border-slate-200/50 dark:border-slate-700/50">
+                <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-4">
+                    <button onClick={() => navigate(`/family/${familyId}`)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <span className="text-lg font-bold">Family Settings</span>
+                </div>
+            </nav>
+
+            <div className="pt-24 pb-12 px-6 max-w-5xl mx-auto relative">
+                <div className="flex items-center gap-3 mb-8">
+                    <Settings className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                    <h1 className="text-3xl font-bold">Settings</h1>
+                </div>
 
             {error && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-600">
@@ -277,6 +288,7 @@ export const FamilySettings: React.FC = () => {
                     </div>
                 </div>
             )}
+        </div>
         </div>
     );
 };

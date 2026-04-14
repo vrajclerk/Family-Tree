@@ -4,6 +4,7 @@ import { ArrowLeft, Edit3, Save, X, Calendar, Briefcase, GitBranch, TreePine, Ca
 import { useFamilyMembers, type FamilyMemberWithPerson } from '../hooks/useFamilyMembers';
 import { useRelationships } from '../hooks/useRelationships';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
+import { useCurrentUserRole } from '../hooks/useCurrentUserRole';
 import EditRelationshipModal from '../components/EditRelationshipModal';
 
 const MemberProfile: React.FC = () => {
@@ -13,6 +14,7 @@ const MemberProfile: React.FC = () => {
     const { members, updateMember } = useFamilyMembers(familyId || '');
     const { relationships, updateRelationship, deleteRelationship } = useRelationships(familyId || '');
     const { uploadPhoto, deletePhoto, uploading } = usePhotoUpload();
+    const { isViewer, loading: roleLoading } = useCurrentUserRole(familyId);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [editing, setEditing] = useState(false);
@@ -143,7 +145,7 @@ const MemberProfile: React.FC = () => {
         }
     };
 
-    if (!member) {
+    if (!member || roleLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
@@ -187,11 +189,11 @@ const MemberProfile: React.FC = () => {
                                     <Save className="w-4 h-4" /> {saving ? 'Saving...' : 'Save'}
                                 </button>
                             </>
-                        ) : (
+                        ) : !isViewer ? (
                             <button onClick={() => setEditing(true)} className="btn-secondary flex items-center gap-2 text-sm">
                                 <Edit3 className="w-4 h-4" /> Edit
                             </button>
-                        )}
+                        ) : null}
                     </div>
                 </div>
             </nav>
@@ -215,29 +217,31 @@ const MemberProfile: React.FC = () => {
                                     </div>
                                 )}
                                 {/* Photo actions overlay */}
-                                <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="p-2 bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors text-white"
-                                        title={person?.photo_url ? 'Change photo' : 'Upload photo'}
-                                        disabled={uploading}
-                                    >
-                                        {uploading ? (
-                                            <Upload className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <Camera className="w-4 h-4" />
-                                        )}
-                                    </button>
-                                    {person?.photo_url && (
+                                {!isViewer && (
+                                    <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
                                         <button
-                                            onClick={handlePhotoDelete}
-                                            className="p-2 bg-red-500/40 backdrop-blur rounded-lg hover:bg-red-500/60 transition-colors text-white"
-                                            title="Remove photo"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="p-2 bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors text-white"
+                                            title={person?.photo_url ? 'Change photo' : 'Upload photo'}
+                                            disabled={uploading}
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            {uploading ? (
+                                                <Upload className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <Camera className="w-4 h-4" />
+                                            )}
                                         </button>
-                                    )}
-                                </div>
+                                        {person?.photo_url && (
+                                            <button
+                                                onClick={handlePhotoDelete}
+                                                className="p-2 bg-red-500/40 backdrop-blur rounded-lg hover:bg-red-500/60 transition-colors text-white"
+                                                title="Remove photo"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex-1">
@@ -360,7 +364,7 @@ const MemberProfile: React.FC = () => {
                                                         member={s.member}
                                                         relationType={s.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${s.member!.id}`)}
-                                                        onEdit={() => setEditingRelationship(s)}
+                                                        onEdit={!isViewer ? () => setEditingRelationship(s) : undefined}
                                                     />
                                                 ))}
                                             </div>
@@ -376,7 +380,7 @@ const MemberProfile: React.FC = () => {
                                                         member={p.member}
                                                         relationType={p.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${p.member!.id}`)}
-                                                        onEdit={() => setEditingRelationship(p)}
+                                                        onEdit={!isViewer ? () => setEditingRelationship(p) : undefined}
                                                     />
                                                 ))}
                                             </div>
@@ -392,7 +396,7 @@ const MemberProfile: React.FC = () => {
                                                         member={s.member}
                                                         relationType={s.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${s.member!.id}`)}
-                                                        onEdit={() => setEditingRelationship(s)}
+                                                        onEdit={!isViewer ? () => setEditingRelationship(s) : undefined}
                                                     />
                                                 ))}
                                             </div>
@@ -408,7 +412,7 @@ const MemberProfile: React.FC = () => {
                                                         member={c.member}
                                                         relationType={c.relation_subtype}
                                                         onClick={() => navigate(`/family/${familyId}/member/${c.member!.id}`)}
-                                                        onEdit={() => setEditingRelationship(c)}
+                                                        onEdit={!isViewer ? () => setEditingRelationship(c) : undefined}
                                                     />
                                                 ))}
                                             </div>
