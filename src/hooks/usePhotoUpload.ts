@@ -63,7 +63,8 @@ export const usePhotoUpload = () => {
             const parts = photoUrl.split('/member-photos/');
             if (parts.length > 1) {
                 const filePath = parts[1];
-                await supabase.storage.from('member-photos').remove([filePath]);
+                const { error: removeError } = await supabase.storage.from('member-photos').remove([filePath]);
+                if (removeError) throw removeError;
             }
 
             // Clear the photo_url

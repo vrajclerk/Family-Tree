@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Edit3, Save, X, Calendar, Briefcase, GitBranch, TreePine, Camera, Upload, Trash2 } from 'lucide-react';
 import { useFamilyMembers, type FamilyMemberWithPerson } from '../hooks/useFamilyMembers';
 import { useRelationships } from '../hooks/useRelationships';
@@ -10,6 +11,7 @@ import EditRelationshipModal from '../components/EditRelationshipModal';
 const MemberProfile: React.FC = () => {
     const { familyId, memberId } = useParams<{ familyId: string; memberId: string }>();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const { members, updateMember } = useFamilyMembers(familyId || '');
     const { relationships, updateRelationship, deleteRelationship } = useRelationships(familyId || '');
@@ -112,8 +114,8 @@ const MemberProfile: React.FC = () => {
         if (!file || !member?.person_id) return;
         try {
             await uploadPhoto(file, member.person_id);
-            // Refresh data
-            window.location.reload();
+            // Invalidate family members cache to refresh photo
+            queryClient.invalidateQueries({ queryKey: ['family-members', familyId] });
         } catch (err) {
             console.error('Photo upload failed:', err);
         }
@@ -121,9 +123,11 @@ const MemberProfile: React.FC = () => {
 
     const handlePhotoDelete = async () => {
         if (!member?.person?.photo_url || !member.person_id) return;
+        if (!window.confirm('Delete this photo? This cannot be undone.')) return;
         try {
             await deletePhoto(member.person_id, member.person.photo_url);
-            window.location.reload();
+            // Invalidate family members cache to refresh photo
+            queryClient.invalidateQueries({ queryKey: ['family-members', familyId] });
         } catch (err) {
             console.error('Photo delete failed:', err);
         }

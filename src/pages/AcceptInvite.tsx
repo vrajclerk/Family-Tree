@@ -27,9 +27,10 @@ const AcceptInvite: React.FC = () => {
                 const { data, error } = await supabase
                     .from('family_invitations')
                     .select(`
-                        id, 
-                        role, 
+                        id,
+                        role,
                         family_id,
+                        created_at,
                         families (name)
                     `)
                     .eq('id', inviteId)
@@ -37,6 +38,12 @@ const AcceptInvite: React.FC = () => {
 
                 if (error || !data) {
                     throw new Error('This invitation link is invalid or has expired.');
+                }
+
+                // Check if invitation has expired (older than 7 days)
+                const createdAt = new Date(data.created_at);
+                if (Date.now() - createdAt.getTime() > 7 * 24 * 60 * 60 * 1000) {
+                    throw new Error('This invitation has expired. Please request a new one.');
                 }
 
                 setInvite(data);

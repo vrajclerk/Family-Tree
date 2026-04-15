@@ -14,6 +14,6 @@ export const useDuplicateDetection = (name: string, birthDate?: string) => {
             if (error) throw error;
             return data;
         },
-        enabled: name.length > 2,
+        enabled: !!name && name.length > 2,
     });
 };
