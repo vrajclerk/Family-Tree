@@ -208,39 +208,13 @@ const CreateFamilyModal: React.FC<CreateFamilyModalProps> = ({ onClose, onSucces
         setError('');
 
         try {
-            // Hash password (in production, this should be done server-side)
-            const bcrypt = await import('bcryptjs');
-            const hashedPassword = await bcrypt.hash(password, 10);
+            // Call Edge Function to create family with server-side password hashing
+            const { data, error } = await supabase.functions.invoke('create-family', {
+                body: { name, description, password, userId: user.id },
+            });
 
-            // Create family
-            const { data: family, error: familyError } = await supabase
-                .from('families')
-                .insert([
-                    {
-                        name,
-                        description,
-                        owner_user_id: user.id,
-                        owner_password_hash: hashedPassword,
-                    },
-                ])
-                .select()
-                .single();
-
-            if (familyError) throw familyError;
-
-            // Create owner membership
-            const { error: membershipError } = await supabase
-                .from('family_memberships')
-                .insert([
-                    {
-                        family_id: family.id,
-                        user_id: user.id,
-                        role: 'owner',
-                        accepted: true,
-                    },
-                ]);
-
-            if (membershipError) throw membershipError;
+            if (error) throw error;
+            if (!data?.family_id) throw new Error('Failed to create family tree');
 
             onSuccess();
         } catch (err: any) {

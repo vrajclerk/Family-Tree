@@ -96,14 +96,15 @@ export const useFamilyMembers = (familyId: string) => {
             personUpdates?: Partial<Person>;
         }) => {
             if (personUpdates) {
+                const personUpdate: Partial<Person> = { ...personUpdates };
+                if (personUpdates.canonical_name) {
+                    personUpdate.normalized_name = personUpdates.canonical_name.toLowerCase().trim();
+                } else {
+                    delete personUpdate.normalized_name;
+                }
                 const { error } = await supabase
                     .from('persons')
-                    .update({
-                        ...personUpdates,
-                        normalized_name: personUpdates.canonical_name
-                            ? personUpdates.canonical_name.toLowerCase().trim()
-                            : undefined,
-                    })
+                    .update(personUpdate)
                     .eq('id', personId);
                 if (error) throw error;
             }

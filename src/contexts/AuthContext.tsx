@@ -20,19 +20,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let initialized = false;
+
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
             if (session?.user) {
-                fetchUserProfile(session.user.id);
+                fetchUserProfile(session.user.id).finally(() => { initialized = true; });
             } else {
                 setLoading(false);
+                initialized = true;
             }
         });
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
+            if (!initialized) return; // skip spurious init event
             if (session?.user) {
                 fetchUserProfile(session.user.id);
             } else {
@@ -67,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signUp = async (email: string, password: string, fullName: string) => {
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -78,21 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (error) throw error;
-
-        // Create user profile
-        if (data.user) {
-            const { error: profileError } = await supabase
-                .from('users')
-                .insert([
-                    {
-                        id: data.user.id,
-                        email: data.user.email,
-                        full_name: fullName,
-                    },
-                ]);
-
-            if (profileError) throw profileError;
-        }
+        // User profile is created automatically by the database trigger on auth.users INSERT
     };
 
     const signOut = async () => {

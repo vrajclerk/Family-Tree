@@ -47,6 +47,12 @@ export const useRelationships = (familyId: string) => {
             queryClient.invalidateQueries({ queryKey: ['relationships', familyId] });
             queryClient.invalidateQueries({ queryKey: ['family-members', familyId] });
         },
+        onError: (error: any) => {
+            // Handle duplicate constraint violation (error code 23505)
+            if (error.code === '23505') {
+                throw new Error('This relationship already exists.');
+            }
+        },
     });
 
     const deleteRelationship = useMutation({

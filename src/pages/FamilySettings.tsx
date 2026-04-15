@@ -4,6 +4,7 @@ import { Settings, Users, Mail, UserMinus, ShieldAlert, AlertCircle, Plus, Copy,
 import { supabase, type FamilyMembership, type FamilyInvitation } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import InviteMemberModal from '../components/InviteMemberModal';
+import ActivityLog from '../components/ActivityLog';
 
 export const FamilySettings: React.FC = () => {
     const { familyId } = useParams<{ familyId: string }>();
@@ -15,6 +16,7 @@ export const FamilySettings: React.FC = () => {
     const [memberships, setMemberships] = useState<any[]>([]);
     const [invitations, setInvitations] = useState<any[]>([]);
     const [currentUserRole, setCurrentUserRole] = useState<string>('');
+    const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
     
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -77,16 +79,19 @@ export const FamilySettings: React.FC = () => {
     }, [familyId, user]);
 
     const handleUpdateRole = async (membershipId: string, newRole: string) => {
+        setUpdatingRoleId(membershipId);
         try {
             const { error } = await supabase
                 .from('family_memberships')
                 .update({ role: newRole })
                 .eq('id', membershipId);
-                
+
             if (error) throw error;
             fetchSettingsData();
         } catch (err: any) {
             alert(err.message || 'Failed to update role');
+        } finally {
+            setUpdatingRoleId(null);
         }
     };
 
@@ -177,7 +182,7 @@ export const FamilySettings: React.FC = () => {
                                 <div>
                                     <p className="font-semibold">{mem.users?.full_name || mem.users?.email}</p>
                                     <p className="text-sm text-slate-500">{mem.users?.email}</p>
-                                    {!mem.accepted && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded mt-1 inline-block">Invite Pending Logic</span>}
+                                    {!mem.accepted && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded mt-1 inline-block">Invite Pending</span>}
                                 </div>
                                 <div className="flex items-center gap-4">
                                     {isSelf || (currentUserRole === 'admin' && mem.role === 'owner') || mem.role === 'owner' ? (
@@ -189,7 +194,7 @@ export const FamilySettings: React.FC = () => {
                                             value={mem.role}
                                             onChange={(e) => handleUpdateRole(mem.id, e.target.value)}
                                             className="input-field py-1.5 text-sm w-32"
-                                            disabled={currentUserRole !== 'owner' && mem.role === 'admin'}
+                                            disabled={updatingRoleId === mem.id || (currentUserRole !== 'owner' && mem.role === 'admin')}
                                         >
                                             <option value="admin">Admin</option>
                                             <option value="contributor">Contributor</option>
@@ -267,6 +272,11 @@ export const FamilySettings: React.FC = () => {
                         ))}
                     </div>
                 )}
+            </div>
+
+            {/* Activity Log */}
+            <div className="mt-8">
+                <ActivityLog familyId={familyId!} />
             </div>
 
             {showInviteModal && (
