@@ -40,3 +40,5 @@ coverage
 build
 .cache
 
+
+.vercel
