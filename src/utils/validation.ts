@@ -30,7 +30,7 @@ export const validateRelationship = (
     const diffYears = differenceInYears(birth1, birth2);
 
     if (relationshipType === 'parent_child') {
-        const isMember1Parent = true; // In parent_child relation, member1 is Parent, member2 is Child.
+        // In parent_child relation, member1 is Parent, member2 is Child.
         // If parent born after child
         if (birth1 > birth2) {
             error = 'Impossible connection: Parent cannot be born after the child.';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Settings, Users, Mail, UserMinus, ShieldAlert, AlertCircle, Plus, Copy, Check, ArrowLeft } from 'lucide-react';
-import { supabase, type FamilyMembership, type FamilyInvitation } from '../lib/supabase';
+import { Settings, Users, Mail, UserMinus, AlertCircle, Plus, Copy, Check, ArrowLeft } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import InviteMemberModal from '../components/InviteMemberModal';
 import ActivityLog from '../components/ActivityLog';
@@ -281,7 +281,7 @@ export const FamilySettings: React.FC = () => {
 
             {showInviteModal && (
                 <InviteMemberModal
-                    familyId={familyId}
+                    familyId={familyId!}
                     onClose={() => setShowInviteModal(false)}
                     onInviteCreated={() => {
                         fetchSettingsData();
