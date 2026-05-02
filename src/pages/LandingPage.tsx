@@ -159,7 +159,10 @@ const LandingPage: React.FC = () => {
                         <TreePine className="w-6 h-6 text-blue-600" />
                         <span className="text-xl font-bold gradient-text">FamilyTree</span>
                     </div>
-                    <p>&copy; 2026 FamilyTree. Preserving memories, connecting generations.</p>
+                    <p>&copy; {new Date().getFullYear()} FamilyTree. Preserving memories, connecting generations.</p>
+                    <p className="mt-2 text-sm font-medium flex items-center justify-center gap-1">
+                        Created with <span className="text-red-500">❤️</span> by Vraj Clerk
+                    </p>
                 </div>
             </footer>
         </div>
